@@ -9,6 +9,10 @@ const payments = require('../model/payment.js');
 
 const { jwtAuthMiddleware } = require('../config/JWTtoken.js');
 
+routes.get('/API', async (req,res) => {
+  res.send("Server is working");
+});
+
 // LOGIN
 routes.post('/', login);
 
