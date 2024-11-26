@@ -521,22 +521,18 @@ module.exports.travellingTimeline = async (req, res) => {
                 });
             };
 
-            const searchDate = req.body.date;
+            const searchDate = req.params.date;
 
             if (!searchDate || isNaN(new Date(searchDate))) {
                 return res.status(400).json({ msg: "Invalid date format", status: 1, response: "error" });
             }
 
-            const models = [
-                { model: thumbIns, field: "inDate" },
-                { model: thumbOuts, field: "outDate" }
-            ];
-
             const resultData = [];
 
-            for (const { model, field } of models) {
                 try {
-                    const results = await searchByDate(searchDate, model, field);
+                    const results = await searchByDate(searchDate, locationModel, 'createdAt');
+
+                    console.log(results);
                     
                     resultData.push(
                         ...results.map((record) => ({
@@ -550,7 +546,6 @@ module.exports.travellingTimeline = async (req, res) => {
                 } catch (error) {
                     console.error(`Error querying ${field}:`, error.message);
                 }
-            }
 
             return res.status(200).json({
                 msg: "Search completed",
