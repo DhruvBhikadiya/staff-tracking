@@ -537,8 +537,6 @@ module.exports.travellingTimeline = async (req, res) => {
         try {
             const results = await searchByDate(req.query.date, req.query.userid, locationModel, 'createdAt');
 
-            console.log(results);
-
             resultData.push(
                 ...results.map((record) => [record.lat, record.long])
             );
