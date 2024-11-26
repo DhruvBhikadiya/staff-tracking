@@ -505,57 +505,53 @@ module.exports.travellingTimeline = async (req, res) => {
     try {
         const checkAdmin = await userModel.findOne({ _id: req.user.id, isAdmin: true });
 
-        if (checkAdmin && checkAdmin.isAdmin) {
-            const searchByDate = async (date, model, field) => {
-                const searchDate = new Date(date);
-
-                if (isNaN(searchDate)) {
-                    throw new Error("Invalid Date");
-                }
-
-                return await model.find({
-                    [field]: {
-                        $gte: new Date(searchDate.setHours(0, 0, 0, 0)),
-                        $lt: new Date(searchDate.setHours(24, 0, 0, 0))
-                    }
-                });
-            };
-
-            const searchDate = req.params.date;
-
-            if (!searchDate || isNaN(new Date(searchDate))) {
-                return res.status(400).json({ msg: "Invalid date format", status: 1, response: "error" });
-            }
-
-            const resultData = [];
-
-                try {
-                    const results = await searchByDate(searchDate, locationModel, 'createdAt');
-
-                    console.log(results);
-                    
-                    resultData.push(
-                        ...results.map((record) => ({
-                            _id: record._id,
-                            km: record.km,
-                            image: record.image,
-                            [field]: record[field],
-                            __v: record.__v
-                        }))
-                    );
-                } catch (error) {
-                    console.error(`Error querying ${field}:`, error.message);
-                }
-
-            return res.status(200).json({
-                msg: "Search completed",
-                status: 0,
-                response: "success",
-                data: resultData
-            });
-        } else {
+        if (!checkAdmin || !checkAdmin.isAdmin) {
             return res.status(403).json({ msg: "Unauthorized user", status: 1, response: "error" });
         }
+
+        const searchByDate = async (date, userid, model, field) => {
+            console.log(date,'-- date --');
+
+            const searchDate = new Date(date);
+
+            if (isNaN(searchDate)) {
+                throw new Error("Invalid Date");
+            }
+
+            return await model.find({
+                $and: [
+                    {
+                        [field]: {
+                            $gte: new Date(searchDate.setHours(0, 0, 0, 0)),
+                            $lt: new Date(searchDate.setHours(24, 0, 0, 0))
+                        }
+                    },
+                    {
+                        userid: userid
+                    }
+                ]
+            });
+        };
+
+        const resultData = [];
+        try {
+            const results = await searchByDate(req.query.date, req.query.userid, locationModel, 'createdAt');
+
+            console.log(results);
+
+            resultData.push(
+                ...results.map((record) => [record.lat, record.long])
+            );
+        } catch (error) {
+            console.error(`Error querying createdAt field:`, error);
+        }
+
+        return res.status(200).json({
+            msg: "Search completed",
+            status: 0,
+            response: "success",
+            data: resultData
+        });
     } catch (error) {
         console.error("Error in travellingTimeline:", error.message);
         return res.status(500).json({ msg: "Something went wrong", status: 1, response: "error" });
