@@ -9,12 +9,12 @@ const payments = require('../model/payment.js');
 
 const { jwtAuthMiddleware } = require('../config/JWTtoken.js');
 
-routes.get('/API', async (req,res) => {
-  res.send("Server is working");
+routes.get('/', async (req,res) => {
+  res.send("Hello from server");
 });
 
 // LOGIN
-routes.post('/', login);
+routes.post('/login', login);
 
 // REGISTRATION
 routes.post('/registration', registration);
@@ -39,7 +39,7 @@ routes.post('/thumbout', thumbOuts.uploadimage, thumbOut);
 routes.get('/getThumbOut', jwtAuthMiddleware, getThumboutData);
 
 // TRACK LOCATION
-routes.post('/trackLocation', trackLocatoin);
+routes.post('/trackLocation', jwtAuthMiddleware, trackLocatoin);
 
 // ADD ORDERS
 routes.post('/addOrder', orders.uploadimage, addOrders);
