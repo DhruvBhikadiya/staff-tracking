@@ -2,6 +2,8 @@ const dotenv = require('dotenv');
 const bcrypt = require('bcrypt');
 const moment = require('moment');
 const nodemailer = require('nodemailer');
+const path = require("path");
+const fs = require("fs");
 
 const { generateToken } = require('../config/JWTtoken.js');
 
@@ -240,9 +242,6 @@ module.exports.changePass = async (req, res) => {
     }
 };
 
-const path = require("path");
-const fs = require("fs");
-
 module.exports.thumbIn = async (req, res) => {
     try {
         if (req.body) {
@@ -377,6 +376,7 @@ module.exports.getThumboutData = async (req, res) => {
 module.exports.trackLocatoin = async (req, res) => {
     try {
         if (req.body) {
+            req.body.userid = req.user.id;
             const newRecord = await locationModel.create(req.body);
             await newRecord.save();
 
