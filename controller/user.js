@@ -23,7 +23,7 @@ module.exports.login = async (req, res) => {
 
             const user = await userModel.findOne({ email: email });
 
-            if (user) {
+            if (user && user.status) {
                 const isValidPassword = await bcrypt.compare(password, user.password);
 
                 if (isValidPassword) {
@@ -34,14 +34,14 @@ module.exports.login = async (req, res) => {
 
                     const token = generateToken(payload);
 
-                    res.json({ token })
+                    res.json({ token, isAdmin: user.isAdmin, email: user.email, userId: user._id  })
                 }
                 else {
                     res.status(400).json({ message: "Invalid password ", status: 1, response: "error" });
                 }
             }
             else {
-                res.status(400).json({ message: "Invalid email ", status: 1, response: "error" });
+                res.status(400).json({ message: "User Not Found ", status: 1, response: "error" });
             }
         }
         else {
