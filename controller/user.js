@@ -530,7 +530,7 @@ module.exports.travellingTimeline = async (req, res) => {
                         userid: userid
                     }
                 ]
-            });
+            }).sort({ createdAt: 1 });
         };
 
         const resultData = [];
