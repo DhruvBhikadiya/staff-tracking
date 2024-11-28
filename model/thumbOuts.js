@@ -2,6 +2,10 @@ const mongoose = require('mongoose');
 const multer = require('multer');
 
 const schema = mongoose.Schema({
+    userId: {
+        type: String,
+        required: true
+    },
     km: {
         type: Number,
         required: true
