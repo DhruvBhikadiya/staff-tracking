@@ -12,10 +12,12 @@ const schema = mongoose.Schema({
     long:{
         type :Number,
         required: true
+    },
+    timestamp: {
+        type: Date,
+        default: Date.now,
+        required: true
     }
-},
-{
-    timestamps: true
 });
 
 const location = mongoose.model('location',schema);
