@@ -30,11 +30,11 @@ routes.put('/changePass/:email', changePass);
 routes.get('/getAllUsers', jwtAuthMiddleware, getAllUsers);
 
 // THUMB IN AND THUMB OUT
-routes.post('/thumbin', thumbIns.uploadimage, thumbIn);
+routes.post('/thumbin', jwtAuthMiddleware, thumbIns.uploadimage, thumbIn);
 
 routes.get('/getThumbIn', jwtAuthMiddleware, getThumbinData);
 
-routes.post('/thumbout', thumbOuts.uploadimage, thumbOut);
+routes.post('/thumbout', jwtAuthMiddleware, thumbOuts.uploadimage, thumbOut);
 
 routes.get('/getThumbOut', jwtAuthMiddleware, getThumboutData);
 
