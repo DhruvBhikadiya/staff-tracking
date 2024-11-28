@@ -8,7 +8,7 @@ const {
     getThumbinData,
     getThumboutData,
     travellingTimeline
-} = require('../controller/user.js');
+} = require('../controller/admin.js');
 
 const { jwtAuthMiddleware } = require('../config/JWTtoken.js');
 
