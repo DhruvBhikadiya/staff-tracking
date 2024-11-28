@@ -10,7 +10,7 @@ const {
   thumbOut,
   addOrders,
   addPayment,
-  trackLocatoin,
+  trackLocation,
   getUserInfo
 } = require('../controller/user.js');
 
@@ -44,7 +44,7 @@ routes.post('/thumbin', jwtAuthMiddleware, thumbIns.uploadimage, thumbIn);
 routes.post('/thumbout', jwtAuthMiddleware, thumbOuts.uploadimage, thumbOut);
 
 // TRACK LOCATION
-routes.post('/trackLocation', jwtAuthMiddleware, trackLocatoin);
+routes.post('/trackLocation', jwtAuthMiddleware, trackLocation);
 
 // ADD ORDERS
 routes.post('/addOrder', jwtAuthMiddleware, orders.uploadimage, addOrders);
