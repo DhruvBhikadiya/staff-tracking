@@ -1,6 +1,6 @@
 const express = require('express');
 const routes = express.Router();
-const { registration, login, forgotPassword, verifyotp, changePass, getAllUsers, thumbIn, thumbOut, addOrders, addPayment, getOrders, getPayments, getThumbinData, getThumboutData, trackLocatoin, travellingTimeline } = require('../controller/user.js');
+const { registration, login, forgotPassword, verifyotp, changePass, getAllUsers, thumbIn, thumbOut, addOrders, addPayment, getOrders, getPayments, getThumbinData, getThumboutData, trackLocatoin, travellingTimeline, getUserInfo } = require('../controller/user.js');
 
 const thumbIns = require('../model/thumbIns.js');
 const thumbOuts = require('../model/thumbOuts.js');
@@ -53,5 +53,8 @@ routes.get('/getPaymentsData', jwtAuthMiddleware, getPayments);
 
 // MAP VIEW TO CHECK TRAVELLING TIMELINE
 routes.get('/mapView', jwtAuthMiddleware, travellingTimeline);
+
+// TODAY THUMBIN DATA
+routes.get('/getUserinfo', jwtAuthMiddleware, getUserInfo);
 
 module.exports = routes;
