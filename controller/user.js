@@ -555,3 +555,70 @@ module.exports.travellingTimeline = async (req, res) => {
         return res.status(500).json({ msg: "Something went wrong", status: 1, response: "error" });
     }
 };
+
+module.exports.getUserInfo = async (req, res) => {
+    try {
+        const checkUser = await userModel.findOne({ _id: req.user.id, isAdmin: false });
+
+        if (!checkUser || checkUser.isAdmin) {
+            return res.status(403).json({ msg: "Unauthorized user", status: 1, response: "error" });
+        }
+
+        const searchByDate = async (date, userid, model, field) => {
+            console.log(date, '-- date --');
+            console.log(userid, '-- userId --');
+
+            const searchDate = new Date(date);
+
+            if (isNaN(searchDate)) {
+                throw new Error("Invalid Date");
+            }
+
+            const data = await model.find({
+                $and: [
+                    {
+                        [field]: {
+                            $gte: new Date(searchDate.setHours(0, 0, 0, 0)),
+                            $lt: new Date(searchDate.setHours(24, 0, 0, 0))
+                        }
+                    },
+                    {
+                        userId: userid
+                    }
+                ]
+            }).sort({ createdAt: 1 });
+
+            return {
+                userId: data[0].userId,
+                kiloMeter: data[0].km,
+                image: data[0].image,
+                [field]: data[0][field]
+            };
+        };
+
+        const today = new Date();
+        const todayDate = today.toISOString().split('T')[0];
+        const model = [
+            { 'model': thumbIns, 'fields': 'inDate' },
+            { 'model': thumbOuts, 'fields': 'outDate' }
+        ];
+
+        let data = [];
+
+        for (var m of model) {
+            const results = await searchByDate(todayDate, req.user.id, m.model, m.fields);
+            data.push(results);
+        }
+
+        return res.status(200).json({
+            msg: "Search completed",
+            status: 0,
+            response: "success",
+            data
+        });
+
+    } catch (error) {
+        console.error("Error in getUserInfo:", error.message);
+        return res.status(500).json({ msg: "Something went wrong", status: 1, response: "error" });
+    }
+};
