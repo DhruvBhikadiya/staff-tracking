@@ -296,22 +296,25 @@ module.exports.thumbOut = async (req, res) => {
     }
 };
 
-module.exports.trackLocatoin = async (req, res) => {
+module.exports.trackLocation = async (req, res) => {
     try {
         const checkUser = await userModel.findOne({ _id: req.user.id, isAdmin: false });
 
         if (checkUser && !checkUser.isAdmin) {
-            if (req.body) {
-                req.body.userid = req.user.id;
-                const newRecord = await locationModel.create(req.body);
-                await newRecord.save();
+            console.log(req.body);
+            if (req.body && Array.isArray(req.body)) {
+                const locationRecords = req.body.map(record => ({
+                    ...record,
+                    userid: req.user.id
+                }));
+
+                await locationModel.insertMany(locationRecords);
 
                 res.status(200).json({ message: "Data uploaded", status: 0, response: "success" });
             } else {
-                res.status(400).json({ message: "Please fill the form", status: 1, response: "error" });
+                res.status(400).json({ message: "Please provide valid data", status: 1, response: "error" });
             }
-        }
-        else {
+        } else {
             return res.status(403).json({ msg: "Unauthorized user", status: 1, response: "error" });
         }
     } catch (e) {
