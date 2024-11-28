@@ -23,3 +23,5 @@ routes.get('/getOrders', jwtAuthMiddleware, getOrders);
 routes.get('/getPaymentsData', jwtAuthMiddleware, getPayments);
 
 routes.get('/mapView', jwtAuthMiddleware, travellingTimeline);
+
+module.exports = routes;
