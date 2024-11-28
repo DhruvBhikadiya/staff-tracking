@@ -169,7 +169,6 @@ module.exports.travellingTimeline = async (req, res) => {
         }
 
         const searchByDate = async (date, userid, model, field) => {
-            console.log(date, '-- date --');
 
             const searchDate = new Date(date);
 
@@ -194,13 +193,13 @@ module.exports.travellingTimeline = async (req, res) => {
 
         const resultData = [];
         try {
-            const results = await searchByDate(req.query.date, req.query.userid, locationModel, 'createdAt');
-
+            const results = await searchByDate(req.query.date, req.query.userid, locationModel, 'timestamp');
+        
             resultData.push(
-                ...results.map((record) => [record.lat, record.long])
+                ...results.map((record) => ({ lat: record.lat, long: record.long, timestamp: record.timestamp }))
             );
         } catch (error) {
-            console.error(`Error querying createdAt field:`, error);
+            console.error(`Error querying timestamp field:`, error);
         }
 
         return res.status(200).json({
