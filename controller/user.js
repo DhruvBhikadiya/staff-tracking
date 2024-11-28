@@ -36,7 +36,7 @@ module.exports.login = async (req, res) => {
 
                     const token = generateToken(payload);
 
-                    res.json({ token, isAdmin: user.isAdmin, email: user.email, userId: user._id  })
+                    res.json({ token, isAdmin: user.isAdmin, email: user.email, userId: user._id })
                 }
                 else {
                     res.status(400).json({ message: "Invalid password ", status: 1, response: "error" });
@@ -81,36 +81,6 @@ module.exports.registration = async (req, res) => {
     catch (e) {
         console.log(e);
         return res.status(400).json({ msg: "Something wrong", status: 1, response: "error" });
-    }
-};
-
-module.exports.getAllUsers = async (req, res) => {
-    try {
-        const checkAdmin = await userModel.findOne({ _id: req.user.id, isAdmin: true });
-
-        if (checkAdmin && checkAdmin.isAdmin) {
-            const page = parseInt(req.query.page) || 1;
-            const limit = parseInt(req.query.limit) || 10;
-            const skip = (page - 1) * limit;
-
-            const userData = await userModel
-                .find({ isAdmin: false })
-                .skip(skip)
-                .limit(limit);
-
-            const totalUsers = await userModel.countDocuments({ isAdmin: false });
-
-            if (userData.length > 0) {
-                return res.status(200).json({ msg: userData, currentPage: page, totalPages: Math.ceil(totalUsers / limit), totalUsers, status: 0, response: "success" });
-            } else {
-                return res.status(404).json({ msg: "User not found", status: 1, response: "error" });
-            }
-        } else {
-            return res.status(403).json({ msg: "Unauthorized user", status: 1, response: "error" });
-        }
-    } catch (e) {
-        console.error(e);
-        return res.status(500).json({ msg: "Something went wrong", status: 1, response: "error" });
     }
 };
 
@@ -244,98 +214,81 @@ module.exports.changePass = async (req, res) => {
 
 module.exports.thumbIn = async (req, res) => {
     try {
-        if (req.body) {
-            if (req.file) {
-                const uploadDir = path.join(__dirname, "../uploads/thumbIn");
-                
-                if (!fs.existsSync(uploadDir)) {
-                    fs.mkdirSync(uploadDir, { recursive: true });
+        const checkUser = await userModel.findOne({ _id: req.user.id, isAdmin: false });
+
+        if (checkUser && !checkUser.isAdmin) {
+            if (req.body) {
+                if (req.file) {
+                    const uploadDir = path.join(__dirname, "../uploads/thumbIn");
+
+                    if (!fs.existsSync(uploadDir)) {
+                        fs.mkdirSync(uploadDir, { recursive: true });
+                    }
+
+                    const uniqueFilename = `thumbIn_${Date.now()}_${req.file.originalname}`;
+                    const filePath = path.join(uploadDir, uniqueFilename);
+
+                    fs.writeFileSync(filePath, req.file.buffer);
+
+                    req.body.image = `/uploads/thumbIn/${uniqueFilename}`;
+                    req.body.userId = req.user.id;
+                    const newRecord = await thumbIns.create(req.body);
+                    await newRecord.save();
+
+                    res.status(200).json({
+                        message: "Data uploaded",
+                        status: 0,
+                        response: "success"
+                    });
+                } else {
+                    res.status(400).json({ message: "Please select an image", status: 1, response: "error" });
                 }
-
-                const uniqueFilename = `thumbIn_${Date.now()}_${req.file.originalname}`;
-                const filePath = path.join(uploadDir, uniqueFilename);
-
-                fs.writeFileSync(filePath, req.file.buffer);
-
-                req.body.image = `/uploads/thumbIn/${uniqueFilename}`;
-                const newRecord = await thumbIns.create(req.body);
-                await newRecord.save();
-
-                res.status(200).json({
-                    message: "Data uploaded",
-                    status: 0,
-                    response: "success"
-                });
             } else {
-                res.status(400).json({ message: "Please select an image", status: 1, response: "error" });
+                res.status(400).json({ message: "Please fill the form", status: 1, response: "error" });
             }
-        } else {
-            res.status(400).json({ message: "Please fill the form", status: 1, response: "error" });
+        }
+        else {
+            return res.status(403).json({ msg: "Unauthorized user", status: 1, response: "error" });
         }
     } catch (e) {
         console.log(e);
         return res.status(400).json({ msg: "Something went wrong", status: 1, response: "error" });
-    }
-};
-
-module.exports.getThumbinData = async (req, res) => {
-    try {
-        const checkAdmin = await userModel.findOne({ _id: req.user.id, isAdmin: true });
-
-        if (checkAdmin && checkAdmin.isAdmin) {
-            const page = parseInt(req.query.page) || 1;
-            const limit = parseInt(req.query.limit) || 10;
-            const skip = (page - 1) * limit;
-
-            const thumbinData = await thumbIns
-                .find()
-                .skip(skip)
-                .limit(limit);
-
-            const totalThumbinData = await thumbIns.countDocuments();
-
-            console.log(totalThumbinData);
-
-            if (totalThumbinData > 0) {
-                return res.status(200).json({ msg: thumbinData, currentPage: page, totalPages: Math.ceil(thumbinData / limit), totalThumbinData, status: 0, response: "success" });
-            } else {
-                return res.status(404).json({ msg: "Thumb-in data not found", status: 1, response: "error" });
-            }
-        } else {
-            return res.status(403).json({ msg: "Unauthorized user", status: 1, response: "error" });
-        }
-    } catch (e) {
-        console.error(e);
-        return res.status(500).json({ msg: "Something went wrong", status: 1, response: "error" });
     }
 };
 
 module.exports.thumbOut = async (req, res) => {
     try {
-        if (req.body) {
-            if (req.file) {
-                const uploadDir = path.join(__dirname, "../uploads/thumbOut");
-                
-                if (!fs.existsSync(uploadDir)) {
-                    fs.mkdirSync(uploadDir, { recursive: true });
+        const checkUser = await userModel.findOne({ _id: req.user.id, isAdmin: false });
+
+        if (checkUser && !checkUser.isAdmin) {
+            if (req.body) {
+                if (req.file) {
+                    const uploadDir = path.join(__dirname, "../uploads/thumbOut");
+
+                    if (!fs.existsSync(uploadDir)) {
+                        fs.mkdirSync(uploadDir, { recursive: true });
+                    }
+
+                    const uniqueFilename = `thumbOut_${Date.now()}_${req.file.originalname}`;
+                    const filePath = path.join(uploadDir, uniqueFilename);
+
+                    fs.writeFileSync(filePath, req.file.buffer);
+
+                    req.body.image = `/uploads/thumbOut/${uniqueFilename}`;
+                    req.body.userId = req.user.id;
+                    const newRecord = await thumbOuts.create(req.body);
+                    await newRecord.save();
+
+                    res.status(200).json({ message: "Data uploaded", status: 0, response: "success" });
+                } else {
+                    res.status(400).json({ message: "Please select an image", status: 1, response: "error" });
                 }
-
-                const uniqueFilename = `thumbOut_${Date.now()}_${req.file.originalname}`;
-                const filePath = path.join(uploadDir, uniqueFilename);
-
-                fs.writeFileSync(filePath, req.file.buffer);
-
-                req.body.image = `/uploads/thumbOut/${uniqueFilename}`;
-
-                const newRecord = await thumbOuts.create(req.body);
-                await newRecord.save();
-
-                res.status(200).json({ message: "Data uploaded", status: 0, response: "success" });
             } else {
-                res.status(400).json({ message: "Please select an image", status: 1, response: "error" });
+                res.status(400).json({ message: "Please fill the form", status: 1, response: "error" });
             }
-        } else {
-            res.status(400).json({ message: "Please fill the form", status: 1, response: "error" });
+        }
+        else {
+            return res.status(403).json({ msg: "Unauthorized user", status: 1, response: "error" });
         }
     } catch (e) {
         console.log(e);
@@ -343,46 +296,23 @@ module.exports.thumbOut = async (req, res) => {
     }
 };
 
-module.exports.getThumboutData = async (req, res) => {
-    try {
-        const checkAdmin = await userModel.findOne({ _id: req.user.id, isAdmin: true });
-
-        if (checkAdmin && checkAdmin.isAdmin) {
-            const page = parseInt(req.query.page) || 1;
-            const limit = parseInt(req.query.limit) || 10;
-            const skip = (page - 1) * limit;
-
-            const thumboutData = await thumbOuts
-                .find()
-                .skip(skip)
-                .limit(limit);
-
-            const totalThumboutData = await thumbOuts.countDocuments();
-
-            if (totalThumboutData > 0) {
-                return res.status(200).json({ msg: thumboutData, currentPage: page, totalPages: Math.ceil(thumboutData / limit), totalThumboutData, status: 0, response: "success" });
-            } else {
-                return res.status(404).json({ msg: "Thumb-in data not found", status: 1, response: "error" });
-            }
-        } else {
-            return res.status(403).json({ msg: "Unauthorized user", status: 1, response: "error" });
-        }
-    } catch (e) {
-        console.error(e);
-        return res.status(500).json({ msg: "Something went wrong", status: 1, response: "error" });
-    }
-};
-
 module.exports.trackLocatoin = async (req, res) => {
     try {
-        if (req.body) {
-            req.body.userid = req.user.id;
-            const newRecord = await locationModel.create(req.body);
-            await newRecord.save();
+        const checkUser = await userModel.findOne({ _id: req.user.id, isAdmin: false });
 
-            res.status(200).json({ message: "Data uploaded", status: 0, response: "success" });
-        } else {
-            res.status(400).json({ message: "Please fill the form", status: 1, response: "error" });
+        if (checkUser && !checkUser.isAdmin) {
+            if (req.body) {
+                req.body.userid = req.user.id;
+                const newRecord = await locationModel.create(req.body);
+                await newRecord.save();
+
+                res.status(200).json({ message: "Data uploaded", status: 0, response: "success" });
+            } else {
+                res.status(400).json({ message: "Please fill the form", status: 1, response: "error" });
+            }
+        }
+        else {
+            return res.status(403).json({ msg: "Unauthorized user", status: 1, response: "error" });
         }
     } catch (e) {
         console.log(e);
@@ -392,167 +322,66 @@ module.exports.trackLocatoin = async (req, res) => {
 
 module.exports.addOrders = async (req, res) => {
     try {
-        if (req.body) {
-            if (req.file) {
-                const uploadDir = path.join(__dirname, "../uploads/orders");
-                
-                if (!fs.existsSync(uploadDir)) {
-                    fs.mkdirSync(uploadDir, { recursive: true });
+        const checkUser = await userModel.findOne({ _id: req.user.id, isAdmin: false });
+
+        if (checkUser && !checkUser.isAdmin) {
+            if (req.body) {
+                if (req.file) {
+                    const uploadDir = path.join(__dirname, "../uploads/orders");
+
+                    if (!fs.existsSync(uploadDir)) {
+                        fs.mkdirSync(uploadDir, { recursive: true });
+                    }
+
+                    const uniqueFilename = `orders_${Date.now()}_${req.file.originalname}`;
+                    const filePath = path.join(uploadDir, uniqueFilename);
+
+                    fs.writeFileSync(filePath, req.file.buffer);
+
+                    req.body.image = `/uploads/orders/${uniqueFilename}`;
+
+                    const newRecord = await orderModel.create(req.body);
+                    await newRecord.save();
+
+                    res.status(200).json({ message: "Data uploaded", status: 0, response: "success" });
+                } else {
+                    res.status(400).json({ message: "Please select an image", status: 1, response: "error" });
                 }
-
-                const uniqueFilename = `orders_${Date.now()}_${req.file.originalname}`;
-                const filePath = path.join(uploadDir, uniqueFilename);
-
-                fs.writeFileSync(filePath, req.file.buffer);
-
-                req.body.image = `/uploads/orders/${uniqueFilename}`;
-
-                const newRecord = await orderModel.create(req.body);
-                await newRecord.save();
-
-                res.status(200).json({ message: "Data uploaded", status: 0, response: "success" });
             } else {
-                res.status(400).json({ message: "Please select an image", status: 1, response: "error" });
+                res.status(400).json({ message: "Please fill the form", status: 1, response: "error" });
             }
-        } else {
-            res.status(400).json({ message: "Please fill the form", status: 1, response: "error" });
+        }
+        else {
+            return res.status(403).json({ msg: "Unauthorized user", status: 1, response: "error" });
         }
     } catch (e) {
         console.log(e);
         return res.status(400).json({ msg: "Something went wrong", status: 1, response: "error" });
-    }
-};
-
-module.exports.getOrders = async (req, res) => {
-    try {
-        const checkAdmin = await userModel.findOne({ _id: req.user.id, isAdmin: true });
-
-        if (checkAdmin && checkAdmin.isAdmin) {
-            const page = parseInt(req.query.page) || 1;
-            const limit = parseInt(req.query.limit) || 10;
-            const skip = (page - 1) * limit;
-
-            const orderData = await orderModel
-                .find()
-                .skip(skip)
-                .limit(limit);
-
-            const totalOrders = await orderModel.countDocuments();
-
-            if (orderData.length > 0) {
-                return res.status(200).json({ msg: orderData, currentPage: page, totalPages: Math.ceil(totalOrders / limit), totalOrders, status: 0, response: "success" });
-            } else {
-                return res.status(404).json({ msg: "Order not found", status: 1, response: "error" });
-            }
-        } else {
-            return res.status(403).json({ msg: "Unauthorized user", status: 1, response: "error" });
-        }
-    } catch (e) {
-        console.error(e);
-        return res.status(500).json({ msg: "Something went wrong", status: 1, response: "error" });
     }
 };
 
 module.exports.addPayment = async (req, res) => {
     try {
-        if (req.body) {
-            req.body.date = moment().format('LLL');
+        const checkUser = await userModel.findOne({ _id: req.user.id, isAdmin: false });
 
-            const newRecord = await paymentModel.create(req.body);
-            await newRecord.save();
+        if (checkUser && !checkUser.isAdmin) {
+            if (req.body) {
+                req.body.date = moment().format('LLL');
 
-            res.status(200).json({ message: "Payment added", status: 0, response: "success" });
-        } else {
-            res.status(400).json({ message: "Payment not added", status: 1, response: "error" });
+                const newRecord = await paymentModel.create(req.body);
+                await newRecord.save();
+
+                res.status(200).json({ message: "Payment added", status: 0, response: "success" });
+            } else {
+                res.status(400).json({ message: "Payment not added", status: 1, response: "error" });
+            }
+        }
+        else{
+            return res.status(403).json({ msg: "Unauthorized user", status: 1, response: "error" });
         }
     } catch (e) {
         console.log(e);
         return res.status(400).json({ msg: "Something went wrong", status: 1, response: "error" });
-    }
-};
-
-module.exports.getPayments = async (req, res) => {
-    try {
-        const checkAdmin = await userModel.findOne({ _id: req.user.id, isAdmin: true });
-
-        if (checkAdmin && checkAdmin.isAdmin) {
-            const page = parseInt(req.query.page) || 1;
-            const limit = parseInt(req.query.limit) || 10;
-            const skip = (page - 1) * limit;
-
-            const paymentData = await paymentModel
-                .find()
-                .skip(skip)
-                .limit(limit);
-
-            const totalPayments = await paymentModel.countDocuments();
-
-            if (paymentData.length > 0) {
-                return res.status(200).json({ msg: paymentData, currentPage: page, totalPages: Math.ceil(totalPayments / limit), totalPayments, status: 0, response: "success" });
-            } else {
-                return res.status(404).json({ msg: "Payment data not found", status: 1, response: "error" });
-            }
-        } else {
-            return res.status(403).json({ msg: "Unauthorized user", status: 1, response: "error" });
-        }
-    } catch (e) {
-        console.error(e);
-        return res.status(500).json({ msg: "Something went wrong", status: 1, response: "error" });
-    }
-};
-
-module.exports.travellingTimeline = async (req, res) => {
-    try {
-        const checkAdmin = await userModel.findOne({ _id: req.user.id, isAdmin: true });
-
-        if (!checkAdmin || !checkAdmin.isAdmin) {
-            return res.status(403).json({ msg: "Unauthorized user", status: 1, response: "error" });
-        }
-
-        const searchByDate = async (date, userid, model, field) => {
-            console.log(date,'-- date --');
-
-            const searchDate = new Date(date);
-
-            if (isNaN(searchDate)) {
-                throw new Error("Invalid Date");
-            }
-
-            return await model.find({
-                $and: [
-                    {
-                        [field]: {
-                            $gte: new Date(searchDate.setHours(0, 0, 0, 0)),
-                            $lt: new Date(searchDate.setHours(24, 0, 0, 0))
-                        }
-                    },
-                    {
-                        userid: userid
-                    }
-                ]
-            }).sort({ createdAt: 1 });
-        };
-
-        const resultData = [];
-        try {
-            const results = await searchByDate(req.query.date, req.query.userid, locationModel, 'createdAt');
-
-            resultData.push(
-                ...results.map((record) => [record.lat, record.long])
-            );
-        } catch (error) {
-            console.error(`Error querying createdAt field:`, error);
-        }
-
-        return res.status(200).json({
-            msg: "Search completed",
-            status: 0,
-            response: "success",
-            data: resultData
-        });
-    } catch (error) {
-        console.error("Error in travellingTimeline:", error.message);
-        return res.status(500).json({ msg: "Something went wrong", status: 1, response: "error" });
     }
 };
 
