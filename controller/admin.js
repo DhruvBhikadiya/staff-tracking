@@ -10,6 +10,9 @@ const orderModel = require('../model/order.js');
 const paymentModel = require('../model/payment.js');
 const locationModel = require('../model/location.js');
 
+const mongoose = require("mongoose");
+const { ObjectId } = mongoose.Types;
+
 module.exports.getAllUsers = async (req, res) => {
     try {
         const checkAdmin = await userModel.findOne({ _id: req.user.id, isAdmin: true });
@@ -168,46 +171,78 @@ module.exports.travellingTimeline = async (req, res) => {
             return res.status(403).json({ msg: "Unauthorized user", status: 1, response: "error" });
         }
 
-        const searchByDate = async (date, userid, model, field) => {
+        // const searchByDate = async (date, userid, model, field) => {
 
-            const searchDate = new Date(date);
+        //     const searchDate = new Date(date);
 
-            if (isNaN(searchDate)) {
-                throw new Error("Invalid Date");
-            }
+        //     if (isNaN(searchDate)) {
+        //         throw new Error("Invalid Date");
+        //     }
 
-            return await model.find({
-                $and: [
-                    {
-                        [field]: {
-                            $gte: new Date(searchDate.setHours(0, 0, 0, 0)),
-                            $lt: new Date(searchDate.setHours(24, 0, 0, 0))
-                        }
-                    },
-                    {
-                        userid: userid
-                    }
-                ]
-            }).sort({ createdAt: 1 });
-        };
+        //     return await model.find({
+        //         $and: [
+        //             {
+        //                 [field]: {
+        //                     $gte: new Date(searchDate.setHours(0, 0, 0, 0)),
+        //                     $lt: new Date(searchDate.setHours(24, 0, 0, 0))
+        //                 }
+        //             },
+        //             {
+        //                 userid: userid
+        //             }
+        //         ]
+        //     }).sort({ createdAt: 1 });
+        // };
 
-        const resultData = [];
+        // const resultData = [];
         try {
-            const results = await searchByDate(req.query.date, req.query.userid, locationModel, 'timestamp');
-        
-            resultData.push(
-                ...results.map((record) => ({ lat: record.lat, long: record.long, timestamp: record.timestamp }))
-            );
+            // const results = await searchByDate(req.query.date, req.query.userid, locationModel, 'timestamp');
+            const data = await locationModel.aggregate([
+                {
+                  "$addFields": {
+                    "formattedDate": {
+                      "$dateToString": {
+                        "format": "%Y-%m-%d",
+                        "date": "$timestamp"
+                      }
+                    }
+                  }
+                },
+                {
+                  "$match": {
+                    "formattedDate": req.query.date,
+                    "userId": new ObjectId(req.query.userid)
+                  }
+                },
+                {
+                    "$project": {
+                        lat:1,
+                        long : 1,
+                        timestamp:1,
+                    }
+                },
+                {
+                  $sort: {
+                    "timestamp": 1
+                  }
+                }
+              ]
+              )
+              return res.status(200).json({
+                msg: "Search completed",
+                status: 0,
+                response: "success",
+                data: data
+            });
         } catch (error) {
             console.error(`Error querying timestamp field:`, error);
+            return res.status(400).json({
+                msg: "Error",
+                status: 0,
+                response: "error",
+                error
+            });
         }
-
-        return res.status(200).json({
-            msg: "Search completed",
-            status: 0,
-            response: "success",
-            data: resultData
-        });
     } catch (error) {
         console.error("Error in travellingTimeline:", error.message);
         return res.status(500).json({ msg: "Something went wrong", status: 1, response: "error" });
