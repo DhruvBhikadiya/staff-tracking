@@ -307,7 +307,7 @@ module.exports.trackLocation = async (req, res) => {
             if (req.body && Array.isArray(req.body)) {
                 const locationRecords = req.body.map(record => ({
                     ...record,
-                    userid: new ObjectId(req.user.id)
+                    userId: new ObjectId(req.user.id)
                 }));
 
                 await locationModel.insertMany(locationRecords);
