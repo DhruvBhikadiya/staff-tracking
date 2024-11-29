@@ -1,9 +1,9 @@
 const mongoose = require('mongoose');
 
 const schema = mongoose.Schema({
-    userid: {
-        type: String,
-        required: true
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "user",
     },
     lat: {
         type: Number,

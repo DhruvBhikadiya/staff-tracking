@@ -17,6 +17,8 @@ const thumbOuts = require('../model/thumbOuts.js');
 const orderModel = require('../model/order.js');
 const paymentModel = require('../model/payment.js');
 const locationModel = require('../model/location.js');
+const mongoose = require("mongoose");
+const { ObjectId } = mongoose.Types;
 
 module.exports.login = async (req, res) => {
     try {
@@ -231,7 +233,7 @@ module.exports.thumbIn = async (req, res) => {
                     fs.writeFileSync(filePath, req.file.buffer);
 
                     req.body.image = `/uploads/thumbIn/${uniqueFilename}`;
-                    req.body.userId = req.user.id;
+                    req.body.userId = new ObjectId(req.user.id);
                     const newRecord = await thumbIns.create(req.body);
                     await newRecord.save();
 
@@ -275,7 +277,7 @@ module.exports.thumbOut = async (req, res) => {
                     fs.writeFileSync(filePath, req.file.buffer);
 
                     req.body.image = `/uploads/thumbOut/${uniqueFilename}`;
-                    req.body.userId = req.user.id;
+                    req.body.userId = new ObjectId(req.user.id);
                     const newRecord = await thumbOuts.create(req.body);
                     await newRecord.save();
 
@@ -305,7 +307,7 @@ module.exports.trackLocation = async (req, res) => {
             if (req.body && Array.isArray(req.body)) {
                 const locationRecords = req.body.map(record => ({
                     ...record,
-                    userid: req.user.id
+                    userid: new ObjectId(req.user.id)
                 }));
 
                 await locationModel.insertMany(locationRecords);
@@ -420,6 +422,7 @@ module.exports.getUserInfo = async (req, res) => {
                 ]
             }).sort({ createdAt: 1 });
 
+            console.log(data)
             return {
                 userId: data[0].userId,
                 kiloMeter: data[0].km,

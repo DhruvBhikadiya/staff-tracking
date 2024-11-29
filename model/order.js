@@ -2,6 +2,10 @@ const mongoose = require('mongoose');
 const multer = require('multer');
 
 const schema = mongoose.Schema({
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "user",
+    },
     date: {
         type: Date,
         default: Date.now
