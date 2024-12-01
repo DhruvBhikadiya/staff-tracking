@@ -422,7 +422,13 @@ module.exports.getUserInfo = async (req, res) => {
                 ]
             }).sort({ createdAt: 1 });
 
-            console.log(data)
+            console.log(`Records found: ${data.length}`);
+            
+            if (data.length === 0) {
+                console.warn(`No records found for date: ${date}, userId: ${userid}`);
+                return null;
+            }
+
             return {
                 userId: data[0].userId,
                 kiloMeter: data[0].km,
@@ -434,15 +440,19 @@ module.exports.getUserInfo = async (req, res) => {
         const today = new Date();
         const todayDate = today.toISOString().split('T')[0];
         const model = [
-            { 'model': thumbIns, 'fields': 'inDate' },
-            { 'model': thumbOuts, 'fields': 'outDate' }
+            { model: thumbIns, fields: 'inDate' },
+            { model: thumbOuts, fields: 'outDate' }
         ];
 
         let data = [];
 
-        for (var m of model) {
+        for (const m of model) {
             const results = await searchByDate(todayDate, req.user.id, m.model, m.fields);
-            data.push(results);
+            if (results) {
+                data.push(results);
+            } else {
+                console.warn(`No data found for model: ${m.model.modelName}`);
+            }
         }
 
         return res.status(200).json({
@@ -452,8 +462,8 @@ module.exports.getUserInfo = async (req, res) => {
             data
         });
 
-    } catch (error) {
-        console.error("Error in getUserInfo:", error.message);
+    } catch (e) {
+        console.error("Error in getUserInfo:", e.message);
         return res.status(500).json({ msg: "Something went wrong", status: 1, response: "error" });
     }
 };
