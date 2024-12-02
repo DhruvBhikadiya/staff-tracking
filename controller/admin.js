@@ -170,69 +170,76 @@ module.exports.travellingTimeline = async (req, res) => {
         if (!checkAdmin || !checkAdmin.isAdmin) {
             return res.status(403).json({ msg: "Unauthorized user", status: 1, response: "error" });
         }
-
-        // const searchByDate = async (date, userid, model, field) => {
-
-        //     const searchDate = new Date(date);
-
-        //     if (isNaN(searchDate)) {
-        //         throw new Error("Invalid Date");
-        //     }
-
-        //     return await model.find({
-        //         $and: [
-        //             {
-        //                 [field]: {
-        //                     $gte: new Date(searchDate.setHours(0, 0, 0, 0)),
-        //                     $lt: new Date(searchDate.setHours(24, 0, 0, 0))
-        //                 }
-        //             },
-        //             {
-        //                 userid: userid
-        //             }
-        //         ]
-        //     }).sort({ createdAt: 1 });
-        // };
-
-        // const resultData = [];
         try {
-            // const results = await searchByDate(req.query.date, req.query.userid, locationModel, 'timestamp');
             const data = await locationModel.aggregate([
                 {
-                  "$addFields": {
-                    "formattedDate": {
-                      "$dateToString": {
-                        "format": "%Y-%m-%d",
-                        "date": "$timestamp"
-                      }
+                    "$addFields": {
+                        "formattedDate": {
+                            "$dateToString": {
+                                "format": "%Y-%m-%d",
+                                "date": "$timestamp"
+                            }
+                        }
                     }
-                  }
                 },
                 {
-                  "$match": {
-                    "formattedDate": req.query.date,
-                    "userId": new ObjectId(req.query.userid)
-                  }
+                    "$match": {
+                        "formattedDate": req.query.date,
+                        "userId": new ObjectId(req.query.userid)
+                    }
                 },
                 {
                     "$project": {
-                        lat:1,
-                        long : 1,
-                        timestamp:1,
+                        lat: 1,
+                        long: 1,
+                        timestamp: 1,
                     }
                 },
                 {
-                  $sort: {
-                    "timestamp": 1
-                  }
+                    $sort: {
+                        "timestamp": 1
+                    }
                 }
-              ]
-              )
-              return res.status(200).json({
+            ])
+
+            const calculateDistance = (coordinates) => {
+                const R = 6371;
+
+                const toRadians = (degrees) => (degrees * Math.PI) / 180;
+
+                let totalDistance = 0;
+
+                for (let i = 0; i < coordinates.length - 1; i++) {
+                    const { lat: lat1, long: lon1 } = coordinates[i];
+                    const { lat: lat2, long: lon2 } = coordinates[i + 1];
+
+                    const dLat = toRadians(lat2 - lat1);
+                    const dLon = toRadians(lon2 - lon1);
+
+                    const a =
+                        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                        Math.cos(toRadians(lat1)) *
+                        Math.cos(toRadians(lat2)) *
+                        Math.sin(dLon / 2) *
+                        Math.sin(dLon / 2);
+
+                    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+                    const distance = R * c;
+                    totalDistance += distance;
+                }
+
+                return totalDistance;
+            };
+
+            const totalDistance = calculateDistance(data);
+            console.log(`Total Distance: ${totalDistance.toFixed(2)} km`);
+
+            return res.status(200).json({
                 msg: "Search completed",
                 status: 0,
                 response: "success",
-                data: data
+                kiloMeter: totalDistance.toFixed(2)
             });
         } catch (error) {
             console.error(`Error querying timestamp field:`, error);
