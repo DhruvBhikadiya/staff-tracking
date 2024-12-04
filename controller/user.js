@@ -459,7 +459,7 @@ module.exports.getUserInfo = async (req, res) => {
             msg: "Search completed",
             status: 0,
             response: "success",
-            data
+            data: data.length > 0 ? data : null
         });
 
     } catch (e) {
