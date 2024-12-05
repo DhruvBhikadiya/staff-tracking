@@ -53,9 +53,11 @@ module.exports.getThumbinData = async (req, res) => {
             const skip = (page - 1) * limit;
 
             const thumbinData = await thumbIns
-                .find()
+                .find({ userId: req.query.userId })
                 .skip(skip)
                 .limit(limit);
+
+            console.log(thumbinData, '-- thumbinData-- ');
 
             const totalThumbinData = await thumbIns.countDocuments();
 
@@ -83,7 +85,7 @@ module.exports.getThumboutData = async (req, res) => {
             const skip = (page - 1) * limit;
 
             const thumboutData = await thumbOuts
-                .find()
+                .find({ userId: req.query.userId })
                 .skip(skip)
                 .limit(limit);
 
