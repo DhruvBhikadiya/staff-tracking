@@ -399,8 +399,6 @@ module.exports.getUserInfo = async (req, res) => {
         }
 
         const searchByDate = async (date, userid, model, field) => {
-            console.log(date, '-- date --');
-            console.log(userid, '-- userId --');
 
             const searchDate = new Date(date);
 
@@ -422,8 +420,6 @@ module.exports.getUserInfo = async (req, res) => {
                 ]
             }).sort({ createdAt: 1 });
 
-            console.log(`Records found: ${data.length}`);
-            
             if (data.length === 0) {
                 console.warn(`No records found for date: ${date}, userId: ${userid}`);
                 return null;
@@ -444,14 +440,28 @@ module.exports.getUserInfo = async (req, res) => {
             { model: thumbOuts, fields: 'outDate' }
         ];
 
-        let data = [];
+        let data = {};
+
+        const userName = await userModel.find({ _id: req.user.id });
+
+        data.userName = userName[0].name;
 
         for (const m of model) {
             const results = await searchByDate(todayDate, req.user.id, m.model, m.fields);
             if (results) {
-                data.push(results);
+                if (m.fields === 'inDate') {
+                    data['inThumb'] = results;
+                }
+                else if (m.fields === 'outDate') {
+                    data['outThumb'] = results;
+                }
             } else {
-                console.warn(`No data found for model: ${m.model.modelName}`);
+                if (m.fields === 'inDate') {
+                    data['inThumb'] = null;
+                }
+                else if (m.fields === 'outDate') {
+                    data['outThumb'] = null;
+                }
             }
         }
 
@@ -459,7 +469,7 @@ module.exports.getUserInfo = async (req, res) => {
             msg: "Search completed",
             status: 0,
             response: "success",
-            data: data.length > 0 ? data : null
+            data
         });
 
     } catch (e) {
