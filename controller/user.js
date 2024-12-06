@@ -230,7 +230,9 @@ module.exports.thumbIn = async (req, res) => {
 
                     fs.writeFileSync(filePath, req.file.buffer);
 
-                    req.body.image = `${process.env.PATH}thumbIn/${uniqueFilename}`;
+                    console.log(process.env.IMG_PATH,'-- process.env.IMG_PATH --');
+
+                    req.body.image = `${process.env.IMG_PATH}thumbIn/${uniqueFilename}`;
                     req.body.userId = new ObjectId(req.user.id);
                     const newRecord = await thumbIns.create(req.body);
                     await newRecord.save();
@@ -274,7 +276,7 @@ module.exports.thumbOut = async (req, res) => {
 
                     fs.writeFileSync(filePath, req.file.buffer);
 
-                    req.body.image = `${process.env.PATH}thumbOut/${uniqueFilename}`;
+                    req.body.image = `${process.env.IMG_PATH}thumbOut/${uniqueFilename}`;
                     req.body.userId = new ObjectId(req.user.id);
                     const newRecord = await thumbOuts.create(req.body);
                     await newRecord.save();
@@ -340,7 +342,7 @@ module.exports.addOrders = async (req, res) => {
 
                     fs.writeFileSync(filePath, req.file.buffer);
 
-                    req.body.image = `${process.env.PATH}orders/${uniqueFilename}`;
+                    req.body.image = `${process.env.IMG_PATH}orders/${uniqueFilename}`;
 
                     const newRecord = await orderModel.create(req.body);
                     await newRecord.save();
