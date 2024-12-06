@@ -1,13 +1,11 @@
-const dotenv = require('dotenv');
 const bcrypt = require('bcrypt');
 const moment = require('moment');
 const nodemailer = require('nodemailer');
 const path = require("path");
 const fs = require("fs");
+require('dotenv').config();
 
 const { generateToken } = require('../config/JWTtoken.js');
-
-dotenv.config();
 
 // MODEL
 const userModel = require('../model/user.js');
@@ -232,7 +230,7 @@ module.exports.thumbIn = async (req, res) => {
 
                     fs.writeFileSync(filePath, req.file.buffer);
 
-                    req.body.image = `/uploads/thumbIn/${uniqueFilename}`;
+                    req.body.image = `${process.env.PATH}thumbIn/${uniqueFilename}`;
                     req.body.userId = new ObjectId(req.user.id);
                     const newRecord = await thumbIns.create(req.body);
                     await newRecord.save();
@@ -276,7 +274,7 @@ module.exports.thumbOut = async (req, res) => {
 
                     fs.writeFileSync(filePath, req.file.buffer);
 
-                    req.body.image = `/uploads/thumbOut/${uniqueFilename}`;
+                    req.body.image = `${process.env.PATH}thumbOut/${uniqueFilename}`;
                     req.body.userId = new ObjectId(req.user.id);
                     const newRecord = await thumbOuts.create(req.body);
                     await newRecord.save();
@@ -303,7 +301,6 @@ module.exports.trackLocation = async (req, res) => {
         const checkUser = await userModel.findOne({ _id: req.user.id, isAdmin: false });
 
         if (checkUser && !checkUser.isAdmin) {
-            console.log(req.body);
             if (req.body && Array.isArray(req.body)) {
                 const locationRecords = req.body.map(record => ({
                     ...record,
@@ -343,7 +340,7 @@ module.exports.addOrders = async (req, res) => {
 
                     fs.writeFileSync(filePath, req.file.buffer);
 
-                    req.body.image = `/uploads/orders/${uniqueFilename}`;
+                    req.body.image = `${process.env.PATH}orders/${uniqueFilename}`;
 
                     const newRecord = await orderModel.create(req.body);
                     await newRecord.save();
@@ -381,7 +378,7 @@ module.exports.addPayment = async (req, res) => {
                 res.status(400).json({ message: "Payment not added", status: 1, response: "error" });
             }
         }
-        else{
+        else {
             return res.status(403).json({ msg: "Unauthorized user", status: 1, response: "error" });
         }
     } catch (e) {
