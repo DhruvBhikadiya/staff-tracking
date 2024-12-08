@@ -7,7 +7,7 @@ const {
     getPayments,
     getThumbinData,
     getThumboutData,
-    travellingTimeline
+    mapView
 } = require('../controller/admin.js');
 
 const { jwtAuthMiddleware } = require('../config/JWTtoken.js');
@@ -22,6 +22,6 @@ routes.get('/getOrders', jwtAuthMiddleware, getOrders);
 
 routes.get('/getPaymentsData', jwtAuthMiddleware, getPayments);
 
-routes.get('/mapView', jwtAuthMiddleware, travellingTimeline);
+routes.get('/mapView', jwtAuthMiddleware, mapView);
 
 module.exports = routes;
