@@ -165,13 +165,14 @@ module.exports.getPayments = async (req, res) => {
     }
 };
 
-module.exports.travellingTimeline = async (req, res) => {
+module.exports.mapView = async (req, res) => {
     try {
         const checkAdmin = await userModel.findOne({ _id: req.user.id, isAdmin: true });
 
         if (!checkAdmin || !checkAdmin.isAdmin) {
             return res.status(403).json({ msg: "Unauthorized user", status: 1, response: "error" });
         }
+
         try {
             const data = await locationModel.aggregate([
                 {
@@ -192,9 +193,9 @@ module.exports.travellingTimeline = async (req, res) => {
                 },
                 {
                     "$project": {
+                        _id: 0,
                         lat: 1,
-                        long: 1,
-                        timestamp: 1,
+                        long: 1
                     }
                 },
                 {
@@ -202,7 +203,9 @@ module.exports.travellingTimeline = async (req, res) => {
                         "timestamp": 1
                     }
                 }
-            ])
+            ]);
+
+            console.log(data.length);
 
             const calculateDistance = (coordinates) => {
                 const R = 6371;
@@ -235,13 +238,13 @@ module.exports.travellingTimeline = async (req, res) => {
             };
 
             const totalDistance = calculateDistance(data);
-            console.log(`Total Distance: ${totalDistance.toFixed(2)} km`);
 
             return res.status(200).json({
                 msg: "Search completed",
                 status: 0,
                 response: "success",
-                kiloMeter: totalDistance.toFixed(2)
+                kiloMeter: totalDistance.toFixed(2),
+                data
             });
         } catch (error) {
             console.error(`Error querying timestamp field:`, error);
