@@ -195,7 +195,8 @@ module.exports.mapView = async (req, res) => {
                     "$project": {
                         _id: 0,
                         lat: 1,
-                        long: 1
+                        long: 1,
+                        timestamp: 1
                     }
                 },
                 {
