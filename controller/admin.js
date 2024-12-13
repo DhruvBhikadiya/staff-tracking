@@ -114,24 +114,52 @@ module.exports.getOrders = async (req, res) => {
             const limit = parseInt(req.query.limit) || 10;
             const skip = (page - 1) * limit;
 
-            const orderData = await orderModel
-                .find()
-                .skip(skip)
-                .limit(limit);
+            const filter = {};
+            
+            if (req.query.fromDate && req.query.toDate) {
+                filter.createdAt = {
+                    $gte: new Date(req.query.fromDate),
+                    $lte: new Date(req.query.toDate),
+                };
+            }
 
-            const totalOrders = await orderModel.countDocuments();
+            if (req.query.userId) {
+                filter.userId = req.query.userId;
+            }
+
+            const orderData = await orderModel
+                .find(filter);
+
+            const totalOrders = await orderModel.countDocuments(filter);
 
             if (orderData.length > 0) {
-                return res.status(200).json({ msg: orderData, currentPage: page, totalPages: Math.ceil(totalOrders / limit), totalOrders, status: 0, response: "success" });
+                return res.status(200).json({
+                    msg: orderData,
+                    totalOrders,
+                    status: 0,
+                    response: "success",
+                });
             } else {
-                return res.status(404).json({ msg: "Order not found", status: 1, response: "error" });
+                return res.status(404).json({
+                    msg: "Order not found",
+                    status: 1,
+                    response: "error",
+                });
             }
         } else {
-            return res.status(403).json({ msg: "Unauthorized user", status: 1, response: "error" });
+            return res.status(403).json({
+                msg: "Unauthorized user",
+                status: 1,
+                response: "error",
+            });
         }
     } catch (e) {
         console.error(e);
-        return res.status(500).json({ msg: "Something went wrong", status: 1, response: "error" });
+        return res.status(500).json({
+            msg: "Something went wrong",
+            status: 1,
+            response: "error",
+        });
     }
 };
 
@@ -140,28 +168,57 @@ module.exports.getPayments = async (req, res) => {
         const checkAdmin = await userModel.findOne({ _id: req.user.id, isAdmin: true });
 
         if (checkAdmin && checkAdmin.isAdmin) {
-            const page = parseInt(req.query.page) || 1;
-            const limit = parseInt(req.query.limit) || 10;
-            const skip = (page - 1) * limit;
+            const { fromDate, toDate, userId } = req.query;
+
+            const query = {};
+
+            if (userId) {
+                query.userId = userId;
+            }
+
+            if (fromDate || toDate) {
+                query.createdAt = {};
+                if (fromDate) {
+                    query.createdAt.$gte = new Date(fromDate);
+                }
+                if (toDate) {
+                    query.createdAt.$lte = new Date(toDate);
+                }
+            }
 
             const paymentData = await paymentModel
-                .find()
-                .skip(skip)
-                .limit(limit);
+                .find(query);
 
-            const totalPayments = await paymentModel.countDocuments();
+            const totalPayments = await paymentModel.countDocuments(query);
 
             if (paymentData.length > 0) {
-                return res.status(200).json({ msg: paymentData, currentPage: page, totalPages: Math.ceil(totalPayments / limit), totalPayments, status: 0, response: "success" });
+                return res.status(200).json({
+                    msg: paymentData,
+                    totalPayments,
+                    status: 0,
+                    response: "success",
+                });
             } else {
-                return res.status(404).json({ msg: "Payment data not found", status: 1, response: "error" });
+                return res.status(404).json({
+                    msg: "Payment data not found",
+                    status: 1,
+                    response: "error",
+                });
             }
         } else {
-            return res.status(403).json({ msg: "Unauthorized user", status: 1, response: "error" });
+            return res.status(403).json({
+                msg: "Unauthorized user",
+                status: 1,
+                response: "error",
+            });
         }
     } catch (e) {
         console.error(e);
-        return res.status(500).json({ msg: "Something went wrong", status: 1, response: "error" });
+        return res.status(500).json({
+            msg: "Something went wrong",
+            status: 1,
+            response: "error",
+        });
     }
 };
 
