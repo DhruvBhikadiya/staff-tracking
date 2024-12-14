@@ -115,12 +115,22 @@ module.exports.getOrders = async (req, res) => {
             const skip = (page - 1) * limit;
 
             const filter = {};
-            
+            const isValidDate = (date) => !isNaN(new Date(date).valueOf());
+
+            // Validate and apply date filter
             if (req.query.fromDate && req.query.toDate) {
-                filter.date = {
-                    $gte: new Date(req.query.fromDate),
-                    $lte: new Date(req.query.toDate),
-                };
+                if (isValidDate(req.query.fromDate) && isValidDate(req.query.toDate)) {
+                    filter.date = {
+                        $gte: new Date(req.query.fromDate),
+                        $lte: new Date(req.query.toDate),
+                    };
+                } else {
+                    return res.status(400).json({
+                        msg: "Invalid date format",
+                        status: 1,
+                        response: "error",
+                    });
+                }
             }
 
             if (req.query.userId) {
@@ -128,7 +138,9 @@ module.exports.getOrders = async (req, res) => {
             }
 
             const orderData = await orderModel
-                .find(filter);
+                .find(filter)
+                .skip(skip)
+                .limit(limit);
 
             const totalOrders = await orderModel.countDocuments(filter);
 
