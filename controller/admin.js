@@ -174,10 +174,10 @@ module.exports.getPayments = async (req, res) => {
         const checkAdmin = await userModel.findOne({ _id: req.user.id, isAdmin: true });
 
         if (checkAdmin && checkAdmin.isAdmin) {
-
             const filter = {};
             const isValidDate = (date) => !isNaN(new Date(date).valueOf());
 
+            // Validate and apply date filter
             if (req.query.fromDate && req.query.toDate) {
                 if (isValidDate(req.query.fromDate) && isValidDate(req.query.toDate)) {
                     filter.date = {
@@ -197,9 +197,9 @@ module.exports.getPayments = async (req, res) => {
                 filter.userId = req.query.userId;
             }
 
-            const paymentData = await paymentModel
-                .find(filter);
+            console.log("Filter being applied:", filter); // Log the filter
 
+            const paymentData = await paymentModel.find(filter);
             const totalPayments = await paymentModel.countDocuments(filter);
 
             if (paymentData.length > 0) {
@@ -224,7 +224,7 @@ module.exports.getPayments = async (req, res) => {
             });
         }
     } catch (e) {
-        console.error(e);
+        console.error("Error:", e);
         return res.status(500).json({
             msg: "Something went wrong",
             status: 1,
