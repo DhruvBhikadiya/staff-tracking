@@ -117,7 +117,7 @@ module.exports.getOrders = async (req, res) => {
             const filter = {};
             
             if (req.query.fromDate && req.query.toDate) {
-                filter.createdAt = {
+                filter.date = {
                     $gte: new Date(req.query.fromDate),
                     $lte: new Date(req.query.toDate),
                 };
@@ -177,12 +177,12 @@ module.exports.getPayments = async (req, res) => {
             }
 
             if (fromDate || toDate) {
-                query.createdAt = {};
+                query.date = {};
                 if (fromDate) {
-                    query.createdAt.$gte = new Date(fromDate);
+                    query.date.$gte = new Date(fromDate);
                 }
                 if (toDate) {
-                    query.createdAt.$lte = new Date(toDate);
+                    query.date.$lte = new Date(toDate);
                 }
             }
 
