@@ -110,14 +110,10 @@ module.exports.getOrders = async (req, res) => {
         const checkAdmin = await userModel.findOne({ _id: req.user.id, isAdmin: true });
 
         if (checkAdmin && checkAdmin.isAdmin) {
-            const page = parseInt(req.query.page) || 1;
-            const limit = parseInt(req.query.limit) || 10;
-            const skip = (page - 1) * limit;
 
             const filter = {};
             const isValidDate = (date) => !isNaN(new Date(date).valueOf());
 
-            // Validate and apply date filter
             if (req.query.fromDate && req.query.toDate) {
                 if (isValidDate(req.query.fromDate) && isValidDate(req.query.toDate)) {
                     filter.date = {
@@ -138,9 +134,7 @@ module.exports.getOrders = async (req, res) => {
             }
 
             const orderData = await orderModel
-                .find(filter)
-                .skip(skip)
-                .limit(limit);
+                .find(filter);
 
             const totalOrders = await orderModel.countDocuments(filter);
 
@@ -180,14 +174,10 @@ module.exports.getPayments = async (req, res) => {
         const checkAdmin = await userModel.findOne({ _id: req.user.id, isAdmin: true });
 
         if (checkAdmin && checkAdmin.isAdmin) {
-            const page = parseInt(req.query.page) || 1;
-            const limit = parseInt(req.query.limit) || 10;
-            const skip = (page - 1) * limit;
 
             const filter = {};
             const isValidDate = (date) => !isNaN(new Date(date).valueOf());
 
-            // Validate and apply date filter
             if (req.query.fromDate && req.query.toDate) {
                 if (isValidDate(req.query.fromDate) && isValidDate(req.query.toDate)) {
                     filter.date = {
@@ -208,9 +198,7 @@ module.exports.getPayments = async (req, res) => {
             }
 
             const paymentData = await paymentModel
-                .find(filter)
-                .skip(skip)
-                .limit(limit);
+                .find(filter);
 
             const totalPayments = await paymentModel.countDocuments(filter);
 
