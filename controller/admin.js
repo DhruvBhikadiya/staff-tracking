@@ -180,28 +180,39 @@ module.exports.getPayments = async (req, res) => {
         const checkAdmin = await userModel.findOne({ _id: req.user.id, isAdmin: true });
 
         if (checkAdmin && checkAdmin.isAdmin) {
-            const { fromDate, toDate, userId } = req.query;
+            const page = parseInt(req.query.page) || 1;
+            const limit = parseInt(req.query.limit) || 10;
+            const skip = (page - 1) * limit;
 
-            const query = {};
+            const filter = {};
+            const isValidDate = (date) => !isNaN(new Date(date).valueOf());
 
-            if (userId) {
-                query.userId = userId;
+            // Validate and apply date filter
+            if (req.query.fromDate && req.query.toDate) {
+                if (isValidDate(req.query.fromDate) && isValidDate(req.query.toDate)) {
+                    filter.date = {
+                        $gte: new Date(req.query.fromDate),
+                        $lte: new Date(req.query.toDate),
+                    };
+                } else {
+                    return res.status(400).json({
+                        msg: "Invalid date format",
+                        status: 1,
+                        response: "error",
+                    });
+                }
             }
 
-            if (fromDate || toDate) {
-                query.date = {};
-                if (fromDate) {
-                    query.date.$gte = new Date(fromDate);
-                }
-                if (toDate) {
-                    query.date.$lte = new Date(toDate);
-                }
+            if (req.query.userId) {
+                filter.userId = req.query.userId;
             }
 
             const paymentData = await paymentModel
-                .find(query);
+                .find(filter)
+                .skip(skip)
+                .limit(limit);
 
-            const totalPayments = await paymentModel.countDocuments(query);
+            const totalPayments = await paymentModel.countDocuments(filter);
 
             if (paymentData.length > 0) {
                 return res.status(200).json({
