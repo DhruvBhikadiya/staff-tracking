@@ -538,7 +538,7 @@ module.exports.addPayment = async (req, res) => {
               userId,
               clientId: req.body.client_id,
               image: req.body.image,
-              amount: rq.body.amount,
+              amount: req.body.amount,
               date: new Date(req.body.date),
             });
             await newRecord.save();
