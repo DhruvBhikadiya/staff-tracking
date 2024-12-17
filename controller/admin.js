@@ -280,13 +280,39 @@ module.exports.getPayments = async (req, res) => {
         filter.userId = new ObjectId(req.query.userId);
       }
 
-      const paymentData = await paymentModel.find(filter);
-      const totalPayments = await paymentModel.countDocuments(filter);
+      const paymentData = await paymentModel.aggregate([
+        {
+          $match: filter,
+        },
+        {
+          $lookup: {
+            from: "users",
+            localField: "userId",
+            foreignField: "_id",
+            as: "userId",
+          },
+        },
+        {
+          $lookup: {
+            from: "clients",
+            localField: "clientId",
+            foreignField: "_id",
+            as: "clientId",
+          },
+        },
+        {
+          $addFields: {
+            userId: { $arrayElemAt: ["$userId.name", 0] },
+            clientId: { $arrayElemAt: ["$clientId.client_name", 0] },
+          },
+        },
+      ]);
+      // const totalPayments = await paymentModel.countDocuments(filter);
 
       if (paymentData.length > 0) {
         return res.status(200).json({
           payments: paymentData,
-          totalPayments,
+          totalPayments: paymentData.length,
           status: 0,
           response: "success",
         });
