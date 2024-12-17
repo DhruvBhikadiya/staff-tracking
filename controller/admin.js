@@ -187,14 +187,40 @@ module.exports.getOrders = async (req, res) => {
         filter.userId = new ObjectId(req.query.userId);
       }
 
-      const orderData = await orderModel.find(filter);
+      const orderData = await orderModel.aggregate([
+        {
+          $match: filter,
+        },
+        {
+          $lookup: {
+            from: "users",
+            localField: "userId",
+            foreignField: "_id",
+            as: "userId",
+          },
+        },
+        {
+          $lookup: {
+            from: "clients",
+            localField: "clientId",
+            foreignField: "_id",
+            as: "clientId",
+          },
+        },
+        {
+          $addFields: {
+            userId: { $arrayElemAt: ["$userId.name", 0] },
+            clientId: { $arrayElemAt: ["$clientId.client_name", 0] },
+          },
+        },
+      ]);
 
       const totalOrders = await orderModel.countDocuments(filter);
 
       if (orderData.length > 0) {
         return res.status(200).json({
           orders: orderData,
-          totalOrders,
+          totalOrders: orderData.length,
           status: 0,
           response: "success",
         });
