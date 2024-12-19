@@ -644,7 +644,7 @@ module.exports.getUserInfo = async (req, res) => {
     const userName = await userModel.find({ _id: req.user.id });
 
     data.userName = userName[0].name;
-
+    data.state = userName[0].state ?? "-";
     for (const m of model) {
       const results = await searchByDate(
         todayDate,
