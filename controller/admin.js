@@ -1,4 +1,5 @@
 const dotenv = require("dotenv");
+const { ObjectId } = require('mongoose').Types;
 
 dotenv.config();
 
@@ -9,9 +10,7 @@ const thumbOuts = require("../model/thumbOuts.js");
 const orderModel = require("../model/order.js");
 const paymentModel = require("../model/payment.js");
 const locationModel = require("../model/location.js");
-
-const mongoose = require("mongoose");
-const { ObjectId } = mongoose.Types;
+const allownceModel = require("../model/allownce.js");
 
 module.exports.getAllUsers = async (req, res) => {
   try {
@@ -73,10 +72,9 @@ module.exports.getThumbinData = async (req, res) => {
 
       const thumbinData = await thumbIns
         .find({ userId: req.query.userId })
+        .sort({ inDate: -1 })
         .skip(skip)
         .limit(limit);
-
-      console.log(thumbinData, "-- thumbinData-- ");
 
       const totalThumbinData = await thumbIns.countDocuments();
 
@@ -123,6 +121,7 @@ module.exports.getThumboutData = async (req, res) => {
 
       const thumboutData = await thumbOuts
         .find({ userId: req.query.userId })
+        .sort({ outDate: -1 })
         .skip(skip)
         .limit(limit);
 
@@ -307,7 +306,6 @@ module.exports.getPayments = async (req, res) => {
           },
         },
       ]);
-      // const totalPayments = await paymentModel.countDocuments(filter);
 
       if (paymentData.length > 0) {
         return res.status(200).json({
@@ -387,8 +385,6 @@ module.exports.mapView = async (req, res) => {
         },
       ]);
 
-      console.log(data.length);
-
       const calculateDistance = (coordinates) => {
         const R = 6371;
 
@@ -406,9 +402,9 @@ module.exports.mapView = async (req, res) => {
           const a =
             Math.sin(dLat / 2) * Math.sin(dLat / 2) +
             Math.cos(toRadians(lat1)) *
-              Math.cos(toRadians(lat2)) *
-              Math.sin(dLon / 2) *
-              Math.sin(dLon / 2);
+            Math.cos(toRadians(lat2)) *
+            Math.sin(dLon / 2) *
+            Math.sin(dLon / 2);
 
           const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
@@ -439,6 +435,216 @@ module.exports.mapView = async (req, res) => {
     }
   } catch (error) {
     console.error("Error in travellingTimeline:", error.message);
+    return res
+      .status(500)
+      .json({ msg: "Something went wrong", status: 1, response: "error" });
+  }
+};
+
+module.exports.getAllowncewUsers = async (req, res) => {
+  try {
+    const checkAdmin = await userModel.findOne({
+      _id: req.user.id,
+      isAdmin: true,
+    });
+
+    if (checkAdmin && checkAdmin.isAdmin) {
+      const startDate = new Date(req.body.stDate);
+      const endDate = new Date(req.body.enDate);
+
+      const allownceUsers = await allownceModel.aggregate([
+        {
+          $match:
+          {
+            userId: new ObjectId(
+              req.body.userId
+            ),
+            createdAt: {
+              $gte: startDate,
+              $lte: endDate,
+            },
+          },
+        },
+        {
+          "$lookup": {
+            "from": "users",
+            "localField": "userId",
+            "foreignField": "_id",
+            "as": "userData"
+          }
+        },
+        {
+          "$addFields": {
+            "userName": { "$arrayElemAt": ["$userData.name", 0] }
+          }
+        },
+        {
+          "$project": {
+            "userId": 1,
+            "userName": 1,
+            "type": 1,
+            "amount": 1,
+            "image": 1,
+            "date": {
+              $dateToString: {
+                format: "%Y-%m-%d",
+                date: "$createdAt"
+              }
+            }
+          }
+        }
+      ]);
+
+      if (allownceUsers.length > 0) {
+        return res.status(200).json({
+          data: allownceUsers,
+          status: 0,
+          response: "success",
+        });
+      } else {
+        return res
+          .status(404)
+          .json({ msg: "Users allownce not found", status: 1, response: "error" });
+      }
+    } else {
+      return res
+        .status(403)
+        .json({ msg: "Unauthorized user", status: 1, response: "error" });
+    }
+  } catch (e) {
+    console.error(e);
+    return res
+      .status(500)
+      .json({ msg: "Something went wrong", status: 1, response: "error" });
+  }
+};
+
+module.exports.getInOutThumbDetails = async (req, res) => {
+  try {
+    const checkAdmin = await userModel.findOne({
+      _id: req.user.id,
+      isAdmin: true,
+    });
+
+    if (checkAdmin && checkAdmin.isAdmin) {
+      const startDate = new Date(req.body.stDate);
+      const endDate = new Date(req.body.enDate);
+
+      const inOutThumbDetails = await thumbIns.aggregate([
+        {
+          $match: {
+            userId: new ObjectId(req.body.userId),
+            inDate: {
+              $gte: startDate,
+              $lte: endDate
+            }
+          }
+        },
+        {
+          $sort: {
+            inDate: -1
+          }
+        },
+        {
+          $project: {
+            userId: 1,
+            inkm: "$km",
+            date: {
+              $dateToString: {
+                format: "%Y-%m-%d",
+                date: "$inDate",
+              },
+            },
+          },
+        },
+        {
+          "$lookup": {
+            "from": "thumbouts",
+            "let": { "matchDate": "$date", "matchUser": "$userId" },
+            "pipeline": [
+              {
+                "$addFields": {
+                  "formattedThumboutDate": {
+                    "$dateToString": {
+                      "format": "%Y-%m-%d",
+                      "date": "$outDate"
+                    }
+                  }
+                }
+              },
+              {
+                "$match": {
+                  "$expr": {
+                    "$and": [
+                      { "$eq": ["$formattedThumboutDate", "$$matchDate"] },
+                      { "$eq": ["$userId", "$$matchUser"] }
+                    ]
+                  }
+                }
+              },
+              {
+                "$project": { "km": 1, "_id": 0 }
+              }
+            ],
+            "as": "result"
+          }
+        },
+        {
+          "$addFields": {
+            "outkm": {
+              "$ifNull": [{ "$arrayElemAt": ["$result.km", 0] }, 0]
+            }
+          }
+        },
+        {
+          $addFields: {
+            diffrence: { $subtract: ["$outkm", "$inkm"] }
+          }
+        },
+        {
+          $lookup: {
+            from: "users",
+            localField: "userId",
+            foreignField: "_id",
+            as: "userData"
+          }
+        },
+        {
+          $sort: {
+            inDate: -1
+          }
+        },
+        {
+          "$addFields": {
+            "userName": { "$arrayElemAt": ["$userData.name", 0] }
+          }
+        },
+        {
+          $project: {
+            result: 0,
+            userData: 0
+          }
+        }
+      ]);
+
+      if (inOutThumbDetails.length > 0) {
+        return res.status(200).json({
+          data: inOutThumbDetails,
+          status: 0,
+          response: "success",
+        });
+      } else {
+        return res
+          .status(404)
+          .json({ msg: "Users allownce not found", status: 1, response: "error" });
+      }
+    } else {
+      return res
+        .status(403)
+        .json({ msg: "Unauthorized user", status: 1, response: "error" });
+    }
+  } catch (e) {
+    console.error(e);
     return res
       .status(500)
       .json({ msg: "Something went wrong", status: 1, response: "error" });
