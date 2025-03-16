@@ -13,12 +13,15 @@ const {
   trackLocation,
   getUserInfo,
   getClientByUser,
+  getallownce,
+  getInOutThumbDetails
 } = require("../controller/user.js");
 
 const thumbIns = require("../model/thumbIns.js");
 const thumbOuts = require("../model/thumbOuts.js");
 const orders = require("../model/order.js");
 const payments = require("../model/payment.js");
+const allownce = require("../model/allownce.js");
 
 const { jwtAuthMiddleware } = require("../config/JWTtoken.js");
 
@@ -57,4 +60,11 @@ routes.post("/addPayment", jwtAuthMiddleware, payments.uploadimage, addPayment);
 routes.get("/getUserinfo", jwtAuthMiddleware, getUserInfo);
 
 routes.get("/getClientByUser", jwtAuthMiddleware, getClientByUser);
+
+// GET ALLOWANCE
+routes.post("/allownce", jwtAuthMiddleware, allownce.uploadimage, getallownce);
+
+// GET IN OUT THUMB DETAILS
+routes.get("/getInOutThumbDetails", jwtAuthMiddleware, getInOutThumbDetails)
+
 module.exports = routes;
