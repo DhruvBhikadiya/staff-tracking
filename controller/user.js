@@ -15,8 +15,10 @@ const thumbOuts = require("../model/thumbOuts.js");
 const orderModel = require("../model/order.js");
 const paymentModel = require("../model/payment.js");
 const locationModel = require("../model/location.js");
-const mongoose = require("mongoose");
+const allownceModel = require("../model/allownce.js");
 const client = require("../model/client.js");
+
+const mongoose = require("mongoose");
 const { ObjectId } = mongoose.Types;
 
 module.exports.login = async (req, res) => {
@@ -271,9 +273,8 @@ module.exports.thumbIn = async (req, res) => {
             fs.mkdirSync(uploadDir, { recursive: true });
           }
 
-          const uniqueFilename = `thumbIn_${Date.now()}_${
-            req.file.originalname
-          }`;
+          const uniqueFilename = `thumbIn_${Date.now()}_${req.file.originalname
+            }`;
           const filePath = path.join(uploadDir, uniqueFilename);
 
           fs.writeFileSync(filePath, req.file.buffer);
@@ -333,9 +334,8 @@ module.exports.thumbOut = async (req, res) => {
             fs.mkdirSync(uploadDir, { recursive: true });
           }
 
-          const uniqueFilename = `thumbOut_${Date.now()}_${
-            req.file.originalname
-          }`;
+          const uniqueFilename = `thumbOut_${Date.now()}_${req.file.originalname
+            }`;
           const filePath = path.join(uploadDir, uniqueFilename);
 
           fs.writeFileSync(filePath, req.file.buffer);
@@ -430,9 +430,8 @@ module.exports.addOrders = async (req, res) => {
             fs.mkdirSync(uploadDir, { recursive: true });
           }
 
-          const uniqueFilename = `orders_${Date.now()}_${
-            req.file.originalname
-          }`;
+          const uniqueFilename = `orders_${Date.now()}_${req.file.originalname
+            }`;
           const filePath = path.join(uploadDir, uniqueFilename);
 
           fs.writeFileSync(filePath, req.file.buffer);
@@ -511,9 +510,8 @@ module.exports.addPayment = async (req, res) => {
             fs.mkdirSync(uploadDir, { recursive: true });
           }
 
-          const uniqueFilename = `payments_${Date.now()}_${
-            req.file.originalname
-          }`;
+          const uniqueFilename = `payments_${Date.now()}_${req.file.originalname
+            }`;
           const filePath = path.join(uploadDir, uniqueFilename);
 
           fs.writeFileSync(filePath, req.file.buffer);
@@ -714,6 +712,195 @@ module.exports.getClientByUser = async (req, res) => {
       });
     }
   } catch (error) {
+    return res
+      .status(500)
+      .json({ msg: "Something went wrong", status: 1, response: "error" });
+  }
+};
+
+module.exports.getallownce = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const checkUser = await userModel.findOne({
+      _id: req.user.id,
+      isAdmin: false,
+    });
+
+    if (checkUser && !checkUser.isAdmin) {
+      if (req.body) {
+        if (req.file) {
+          const uploadDir = path.join(__dirname, "../uploads/allownce");
+
+          if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+          }
+
+          const uniqueFilename = `allownce_${Date.now()}_${req.file.originalname
+            }`;
+          const filePath = path.join(uploadDir, uniqueFilename);
+
+          fs.writeFileSync(filePath, req.file.buffer);
+
+          req.body.image = `${process.env.IMG_PATH}allownce/${uniqueFilename}`;
+
+          const newRecord = await allownceModel.create({
+            userId,
+            type: req.body.type,
+            amount: req.body.amount,
+            image: req.body.image
+          });
+
+          await newRecord.save();
+
+          res.status(200).json({
+            message: "Allownce added success",
+            status: 0,
+            response: "success",
+          });
+        } else {
+          res.status(400).json({
+            message: "Please select an image",
+            status: 1,
+            response: "error",
+          });
+        }
+      }
+    } else {
+      return res
+        .status(403)
+        .json({ msg: "Unauthorized user", status: 1, response: "error" });
+    }
+  } catch (e) {
+    console.log(e);
+    return res
+      .status(400)
+      .json({ msg: "Something went wrong", status: 1, response: "error" });
+  }
+};
+
+module.exports.getInOutThumbDetails = async (req, res) => {
+  try {
+    const checkUser = await userModel.findOne({
+      _id: new ObjectId(req.user.id),
+      isAdmin: false,
+    });
+
+    if (!checkUser) {
+      return res
+        .status(403)
+        .json({ msg: "Unauthorized user", status: 1, response: "error" });
+    }
+
+    const currentDate = new Date();
+    const startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+    const endDate = new Date();
+
+    const inOutThumbDetails = await thumbIns.aggregate([
+      {
+        $match: {
+          userId: new ObjectId(req.user.id),
+          inDate: {
+            $gte: startDate,
+            $lte: endDate
+          }
+        }
+      },
+      {
+        $sort: {
+          inDate: -1
+        }
+      },
+      {
+        $project: {
+          userId: 1,
+          inkm: "$km",
+          date: {
+            $dateToString: {
+              format: "%Y-%m-%d",
+              date: "$inDate",
+            },
+          },
+        },
+      },
+      {
+        "$lookup": {
+          "from": "thumbouts",
+          "let": { "matchDate": "$date", "matchUser": "$userId" },
+          "pipeline": [
+            {
+              "$addFields": {
+                "formattedThumboutDate": {
+                  "$dateToString": {
+                    "format": "%Y-%m-%d",
+                    "date": "$outDate"
+                  }
+                }
+              }
+            },
+            {
+              "$match": {
+                "$expr": {
+                  "$and": [
+                    { "$eq": ["$formattedThumboutDate", "$$matchDate"] },
+                    { "$eq": ["$userId", "$$matchUser"] }
+                  ]
+                }
+              }
+            },
+            {
+              "$project": { "km": 1, "_id": 0 }
+            }
+          ],
+          "as": "result"
+        }
+      },
+      {
+        "$addFields": {
+          "outkm": {
+            "$ifNull": [{ "$arrayElemAt": ["$result.km", 0] }, 0]
+          }
+        }
+      },
+      {
+        $addFields: {
+          diffrence: { $subtract: ["$outkm", "$inkm"] }
+        }
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "userId",
+          foreignField: "_id",
+          as: "userData"
+        }
+      },
+      {
+        $sort: {
+          inDate: -1
+        }
+      },
+      {
+        "$addFields": {
+          "userName": { "$arrayElemAt": ["$userData.name", 0] }
+        }
+      },
+      {
+        $project: {
+          result: 0,
+          userData: 0
+        }
+      }
+    ]);
+
+    return res.status(200).json({
+      msg: "Search completed",
+      status: 0,
+      response: "success",
+      data: inOutThumbDetails,
+    });
+  } catch (e) {
+    console.error("Error in getUserInfo:", e.message);
     return res
       .status(500)
       .json({ msg: "Something went wrong", status: 1, response: "error" });
