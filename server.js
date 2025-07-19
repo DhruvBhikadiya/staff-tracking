@@ -9,8 +9,8 @@ dotenv.config();
 
 const app = express();
 
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded());
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/", require("./routes/index.js"));
 
