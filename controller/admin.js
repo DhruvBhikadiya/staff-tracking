@@ -307,23 +307,12 @@ module.exports.getOrders = async (req, res) => {
         },
       ]);
 
-      const totalOrders = await orderModel.countDocuments(filter);
-
-      if (orderData.length > 0) {
-        return res.status(200).json({
-          orders: orderData,
-          totalOrders: orderData.length,
-          status: 0,
-          response: "success",
-        });
-      } else {
-        return res.status(200).json({
-          orders: [],
-          totalOrders: 0,
-          status: 1,
-          response: "error",
-        });
-      }
+      return res.status(200).json({
+        orders: orderData,
+        totalOrders: orderData.length,
+        status: 0,
+        response: "success",
+      });
     } else {
       return res.status(400).json({
         msg: "Unauthorized user",
@@ -400,21 +389,12 @@ module.exports.getPayments = async (req, res) => {
         },
       ]);
 
-      if (paymentData.length > 0) {
-        return res.status(200).json({
-          payments: paymentData,
-          totalPayments: paymentData.length,
-          status: 0,
-          response: "success",
-        });
-      } else {
-        return res.status(200).json({
-          payments: [],
-          totalPayments: 0,
-          status: 1,
-          response: "error",
-        });
-      }
+      return res.status(200).json({
+        payments: paymentData,
+        totalPayments: paymentData.length,
+        status: 0,
+        response: "success",
+      });
     } else {
       return res.status(400).json({
         msg: "Unauthorized user",
@@ -619,123 +599,128 @@ module.exports.getInOutThumbDetails = async (req, res) => {
       role: 'Admin',
     });
 
-    if (checkAdmin) {
-      const startDate = new Date(req.body.stDate);
-      const endDate = new Date(req.body.enDate);
+    if (!checkAdmin) {
+      return res
+        .status(403)
+        .json({ msg: "Unauthorized user", status: 1, response: "error" });
+    }
 
-      const inOutThumbDetails = await thumbIns.aggregate([
-        {
-          $match: {
-            userId: new ObjectId(req.body.userId),
-            inDate: {
-              $gte: startDate,
-              $lte: endDate
-            }
+    const startDate = new Date(req.body.stDate);
+    const endDate = new Date(req.body.enDate);
+
+    const inOutThumbDetails = await thumbIns.aggregate([
+      {
+        $match: {
+          userId: new ObjectId(req.body.userId),
+          inDate: {
+            $gte: startDate,
+            $lte: endDate
           }
-        },
-        {
-          $sort: {
-            inDate: -1
-          }
-        },
-        {
-          $project: {
-            userId: 1,
-            inkm: "$km",
-            date: {
-              $dateToString: {
-                format: "%Y-%m-%d",
-                date: "$inDate",
-              },
+        }
+      },
+      {
+        $sort: {
+          inDate: -1
+        }
+      },
+      {
+        $project: {
+          userId: 1,
+          inkm: "$km",
+          inImage: "$image",
+          date: {
+            $dateToString: {
+              format: "%Y-%m-%d",
+              date: "$inDate",
             },
           },
         },
-        {
-          "$lookup": {
-            "from": "thumbouts",
-            "let": { "matchDate": "$date", "matchUser": "$userId" },
-            "pipeline": [
-              {
-                "$addFields": {
-                  "formattedThumboutDate": {
-                    "$dateToString": {
-                      "format": "%Y-%m-%d",
-                      "date": "$outDate"
-                    }
+      },
+      {
+        "$lookup": {
+          "from": "thumbouts",
+          "let": { "matchDate": "$date", "matchUser": "$userId" },
+          "pipeline": [
+            {
+              "$addFields": {
+                "formattedThumboutDate": {
+                  "$dateToString": {
+                    "format": "%Y-%m-%d",
+                    "date": "$outDate"
                   }
                 }
-              },
-              {
-                "$match": {
-                  "$expr": {
-                    "$and": [
-                      { "$eq": ["$formattedThumboutDate", "$$matchDate"] },
-                      { "$eq": ["$userId", "$$matchUser"] }
-                    ]
-                  }
-                }
-              },
-              {
-                "$project": { "km": 1, "_id": 0 }
               }
-            ],
-            "as": "result"
-          }
-        },
-        {
-          "$addFields": {
-            "outkm": {
-              "$ifNull": [{ "$arrayElemAt": ["$result.km", 0] }, 0]
+            },
+            {
+              "$match": {
+                "$expr": {
+                  "$and": [
+                    { "$eq": ["$formattedThumboutDate", "$$matchDate"] },
+                    { "$eq": ["$userId", "$$matchUser"] }
+                  ]
+                }
+              }
+            },
+            {
+              "$project": { "km": 1, "image": 1, "_id": 0 }
             }
-          }
-        },
-        {
-          $addFields: {
-            diffrence: { $subtract: ["$outkm", "$inkm"] }
-          }
-        },
-        {
-          $lookup: {
-            from: "users",
-            localField: "userId",
-            foreignField: "_id",
-            as: "userData"
-          }
-        },
-        {
-          $sort: {
-            inDate: -1
-          }
-        },
-        {
-          "$addFields": {
-            "userName": { "$arrayElemAt": ["$userData.name", 0] }
-          }
-        },
-        {
-          $project: {
-            result: 0,
-            userData: 0
+          ],
+          "as": "result"
+        }
+      },
+      {
+        "$addFields": {
+          "outkm": {
+            "$ifNull": [{ "$arrayElemAt": ["$result.km", 0] }, 0]
+          },
+          "outImage": {
+            "$ifNull": [{ "$arrayElemAt": ["$result.image", 0] }, 0]
           }
         }
-      ]);
-
-      if (inOutThumbDetails.length > 0) {
-        return res.status(200).json({
-          data: inOutThumbDetails,
-          status: 0,
-          response: "success",
-        });
-      } else {
-        return res
-          .status(400)
-          .json({ msg: "Users allownce not found", status: 1, response: "error" });
+      },
+      {
+        $addFields: {
+          diffrence: { $subtract: ["$outkm", "$inkm"] }
+        }
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "userId",
+          foreignField: "_id",
+          as: "userData"
+        }
+      },
+      {
+        $sort: {
+          inDate: -1
+        }
+      },
+      {
+        "$addFields": {
+          "userName": { "$arrayElemAt": ["$userData.name", 0] }
+        }
+      },
+      {
+        $project: {
+          result: 0,
+          userData: 0
+        }
       }
-    } else {
+    ]);
+
+    if (inOutThumbDetails.length < 0) {
       return res
         .status(400)
-        .json({ msg: "Unauthorized user", status: 1, response: "error" });
+        .json({ msg: "Users allownce not found", status: 1, response: "error" });
     }
+
+    return res.status(200).json({
+      msg: "Search completed",
+      status: 0,
+      response: "success",
+      data: inOutThumbDetails,
+    });
   } catch (e) {
     console.error(e);
     return res
@@ -744,7 +729,7 @@ module.exports.getInOutThumbDetails = async (req, res) => {
   }
 };
 
-module.exports.dashboard = async (req, res) => {  
+module.exports.dashboard = async (req, res) => {
   try {
     const checkAdmin = await userModel.findOne({
       _id: req.user.id,
